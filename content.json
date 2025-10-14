@@ -1,0 +1,14 @@
+[
+  {
+    "text": "GoPledge is a platform designed to support your nonprofit and community campaigns with technology and donor engagement.",
+    "embedding": [0.01, 0.02, 0.03, 0.04, 0.05]
+  },
+  {
+    "text": "We offer tools for pledge management, fundraising optimization, and donor engagement.",
+    "embedding": [0.02, 0.03, 0.04, 0.05, 0.06]
+  },
+  {
+    "text": "Our services include campaign analytics, CRM integrations, and personalized donor experiences.",
+    "embedding": [0.03, 0.04, 0.05, 0.06, 0.07]
+  }
+]
