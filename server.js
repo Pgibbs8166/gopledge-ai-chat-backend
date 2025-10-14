@@ -1,18 +1,21 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const OpenAI = require('openai');
+const cors = require('cors');
 
 const app = express();
+app.use(cors()); // Enable CORS
 app.use(bodyParser.json());
 
+// Load your embedded content
 const content = require('./content.json');
 
-// Init OpenAI
+// Initialize OpenAI
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Cosine similarity
+// Helper: cosine similarity
 function cosineSimilarity(a, b) {
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
@@ -23,7 +26,7 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// Embed text
+// Helper: embed a question
 async function embedText(text) {
   const resp = await openai.embeddings.create({
     model: 'text-embedding-ada-002',
@@ -32,16 +35,16 @@ async function embedText(text) {
   return resp.data[0].embedding;
 }
 
-// Main chat route
+// Main API route
 app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'No message provided' });
 
-    // 1. Embed the question
+    // 1. Embed the user's question
     const embedding = await embedText(message);
 
-    // 2. Compare to content
+    // 2. Compare to existing chunks
     const sims = content.map(item => ({
       text: item.text,
       sim: cosineSimilarity(embedding, item.embedding)
@@ -50,13 +53,13 @@ app.post('/api/chat', async (req, res) => {
     const top = sims.slice(0, 3).map(i => i.text);
 
     // 3. Build prompt
-    const prompt = `You are an assistant trained on GoPledge content. Use the following context to answer.\n\nContext:\n${top.join('\n---\n')}\n\nQuestion: ${message}\nAnswer:`;
+    const prompt = `You are an assistant trained on GoPledge's website. Use the context below to answer the question. If you don't know, say so.\n\nContext:\n${top.join('\n---\n')}\n\nQuestion: ${message}\nAnswer:`;
 
-    // 4. Call OpenAI Chat
+    // 4. Send to GPT
     const chatResp = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
-        { role: 'system', content: 'You are helpful and truthful.' },
+        { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: prompt }
       ],
       temperature: 0.2
@@ -75,7 +78,7 @@ app.get('/', (req, res) => {
   res.send('GoPledge AI Chat backend is running.');
 });
 
-// Start server
+// Start the server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
