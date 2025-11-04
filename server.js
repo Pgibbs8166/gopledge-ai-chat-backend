@@ -7,7 +7,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Load embedded content
+// Load your embedded content
 const content = require('./content.json');
 
 // Initialize OpenAI
@@ -15,7 +15,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Helper: cosine similarity
+// Cosine similarity
 function cosineSimilarity(a, b) {
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
@@ -26,7 +26,7 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-// Helper: embed a question
+// Embed a question
 async function embedText(text) {
   const resp = await openai.embeddings.create({
     model: 'text-embedding-ada-002',
@@ -43,25 +43,22 @@ app.post('/api/chat', async (req, res) => {
 
     const lower = message.toLowerCase();
 
-    // ✅ Hardcoded fallback for "Get Started"
+    // 🔒 HARDCODED OVERRIDE FOR GETTING STARTED
     if (
-      lower.includes("how do i get started") ||
       lower.includes("get started") ||
       lower.includes("start fundraiser") ||
-      lower.includes("start my fundraiser") ||
-      lower.includes("how to begin") ||
-      lower.includes("launch fundraiser")
+      lower.includes("launch fundraiser") ||
+      (lower.includes("how do i") && lower.includes("start"))
     ) {
       return res.json({
-        reply:
-          "To get started with GoPledge, please fill out the short contact form on our [homepage](https://gopledge.com/#contact) or [contact page](https://gopledge.com/contact/). A team member will reach out to help set up your fundraiser and walk you through the process!"
+        reply: `To get started with GoPledge, please fill out the form on our [Contact Page](https://gopledge.com/contact/). A member of our team will follow up to help you launch your fundraiser.`
       });
     }
 
-    // 1. Embed the user's question
+    // Embed the user's question
     const embedding = await embedText(message);
 
-    // 2. Compare to existing chunks
+    // Compare to existing chunks
     const sims = content.map(item => ({
       text: item.text,
       sim: cosineSimilarity(embedding, item.embedding)
@@ -69,10 +66,10 @@ app.post('/api/chat', async (req, res) => {
     sims.sort((a, b) => b.sim - a.sim);
     const top = sims.slice(0, 3).map(i => i.text);
 
-    // 3. Build prompt
+    // Build prompt
     const prompt = `You are an assistant trained on GoPledge's website. Use the context below to answer the question. If you don't know, say so.\n\nContext:\n${top.join('\n---\n')}\n\nQuestion: ${message}\nAnswer:`;
 
-    // 4. Send to GPT
+    // Send to GPT
     const chatResp = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
@@ -91,7 +88,7 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Health check
+// Health check route
 app.get('/', (req, res) => {
   res.send('GoPledge AI Chat backend is running.');
 });
