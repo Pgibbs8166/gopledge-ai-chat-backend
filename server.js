@@ -4,10 +4,10 @@ const OpenAI = require('openai');
 const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Enable CORS
+app.use(cors());
 app.use(bodyParser.json());
 
-// Load your embedded content
+// Load embedded content
 const content = require('./content.json');
 
 // Initialize OpenAI
@@ -41,6 +41,23 @@ app.post('/api/chat', async (req, res) => {
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: 'No message provided' });
 
+    const lower = message.toLowerCase();
+
+    // ✅ Hardcoded fallback for "Get Started"
+    if (
+      lower.includes("how do i get started") ||
+      lower.includes("get started") ||
+      lower.includes("start fundraiser") ||
+      lower.includes("start my fundraiser") ||
+      lower.includes("how to begin") ||
+      lower.includes("launch fundraiser")
+    ) {
+      return res.json({
+        reply:
+          "To get started with GoPledge, please fill out the short contact form on our [homepage](https://gopledge.com/#contact) or [contact page](https://gopledge.com/contact/). A team member will reach out to help set up your fundraiser and walk you through the process!"
+      });
+    }
+
     // 1. Embed the user's question
     const embedding = await embedText(message);
 
@@ -67,6 +84,7 @@ app.post('/api/chat', async (req, res) => {
 
     const reply = chatResp.choices[0].message.content;
     res.json({ reply });
+
   } catch (err) {
     console.error('Error in /api/chat:', err);
     res.status(500).json({ error: 'Server error' });
